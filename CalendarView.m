@@ -12,6 +12,8 @@
 #import "NSDate+Format.h"
 #import "CalendarViewController.h"
 #import "NSDate+Description.h"
+#import "AppDelegate.h"
+#import <QuartzCore/QuartzCore.h>
 
 @implementation CalendarView
 
@@ -21,6 +23,8 @@
     if (self)
     {
         self.calendar = [NSCalendar currentCalendar];
+        
+        self.eventStore = ((AppDelegate*)[UIApplication sharedApplication].delegate).eventStore;
         
         self.date = [NSDate createDateFromComponentsYear:2014 andMonth:2 andDay:10];
         
@@ -54,7 +58,7 @@
         
         [self.collectionView registerNib:nib forCellWithReuseIdentifier:@"CalendarCell"];
         
-        self.collectionView.backgroundColor = [UIColor redColor];
+        self.collectionView.backgroundColor = [UIColor whiteColor];
         
         self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height)];
         
@@ -63,6 +67,8 @@
         self.tableView.dataSource = self;
         
         [self addSubview:self.tableView];
+        
+        self.eventsDict = [[NSMutableDictionary alloc]init];
     }
     return self;
 }
@@ -90,8 +96,10 @@
     self.tableView.frame = CGRectMake(0, 0, self.frame.size.width, self.frame.size.height);
     
     self.collectionView.frame = CGRectMake(0, self.tableView.frame.size.height, self.frame.size.width, self.frame.size.height - self.tableView.frame.size.height);
-    
+        
     [self.collectionView reloadData];
+    
+    [self.tableView reloadData];
 }
 
 #pragma mark-UICollectionView dataSource Methods
@@ -111,11 +119,17 @@
 -(UICollectionViewCell*)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     CalendarCell *cell = (CalendarCell*)[self.collectionView dequeueReusableCellWithReuseIdentifier:@"CalendarCell" forIndexPath:indexPath ];
-    
+        
     NSInteger index = indexPath.section*7 +indexPath.row +1;
     
     cell.backgroundColor = [UIColor whiteColor];
     
+    cell.dotLabel.backgroundColor = [UIColor clearColor];
+    
+    cell.dotLabel.layer.cornerRadius = 5;
+    
+    cell.dotLabel.layer.masksToBounds = YES;
+
     if (self.displayMode==CKCalendarViewModeDay)
     {
         cell.dateLabel.text = @"";
@@ -130,7 +144,39 @@
         }
         else if ( index>=[self getFirstVisibleDateDay] && index < [self.calendar daysInDate:self.lastVisibleDate]+[self getFirstVisibleDateDay])
         {
-            cell.dateLabel.text = [NSString stringWithFormat:@"%d", index-[self.calendar weekdayInDate:self.firstVisibleDate]+1];
+            NSInteger day = index-[self.calendar weekdayInDate:self.firstVisibleDate]+1;
+            
+            cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
+            
+            NSInteger month = [self.calendar monthsInDate:self.date];
+            
+            NSInteger year = [self.calendar yearsInDate:self.date];
+            
+            NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
+            
+            NSDate *startDate = [NSDate calendarStartDateFromDate:indexDate ];
+            
+            NSDate *endDate = [NSDate calendarEndDateFromDate:indexDate];
+            
+            NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:startDate endDate:endDate calendars:nil];
+            
+            self.events = [self.eventStore eventsMatchingPredicate:predicate];
+            
+            if ([self.events count]>0)
+            {
+            NSDictionary *tempDict = [NSDictionary dictionaryWithObject:self.events forKey:indexDate];
+
+            [self.eventsDict addEntriesFromDictionary:tempDict];
+            }
+            
+            if ([self.events count]>0)
+            {
+                cell.dotLabel.backgroundColor = [UIColor redColor];
+            }
+            else
+            {
+                cell.dotLabel.backgroundColor = [UIColor clearColor];
+            }
         }
         else
         {
@@ -149,14 +195,44 @@
     return cell;
 }
 
+
 - (UIEdgeInsets)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout insetForSectionAtIndex:(NSInteger)section
 {
     return UIEdgeInsetsMake(2, 2, 2, 2);
 }
 
-- (void)reload
+-(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    //later
+    NSInteger index = indexPath.section*7 +indexPath.row +1;
+    
+    NSInteger day = index-[self.calendar weekdayInDate:self.firstVisibleDate]+1;
+        
+    NSInteger month = [self.calendar monthsInDate:self.date];
+    
+    NSInteger year = [self.calendar yearsInDate:self.date];
+    
+    NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
+    
+    NSArray *keys = [self.eventsDict allKeys];
+    
+    for (NSDate *date in keys)
+    {
+      if ([indexDate isEqualToDate:date])
+      {
+          self.events = [self.eventsDict objectForKey:date];
+      }
+    }
+    
+    if (self.displayMode == CKCalendarViewModeMonth)
+    {
+        [self.swipeDelegate newDateToPassBack:indexDate];
+        
+        [self.swipeDelegate displayModeChangedTo:CKCalendarViewModeDay];
+        
+        [self.swipeDelegate changeHeaderView];
+        
+        [self layoutSubviewForDay];
+    }
 }
 
 -(CGSize)cellSize
@@ -168,7 +244,14 @@
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return 10;
+    if ([self.events count]>0)
+    {
+        return [self.events count];
+    }
+    else
+    {
+        return 10;
+    }
 }
 
 -(NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
@@ -184,9 +267,25 @@
     {
         cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell"];
     }
+    if ([self.events count]>0)
+        
+    {
+        cell.textLabel.text = ((EKEvent*)self.events[indexPath.row]).title;
+    }
     
+    else
+    {
+        if (indexPath.row==2)
+        {
     cell.textLabel.text = @"No Events";
-    
+            
+    cell.textLabel.textAlignment = NSTextAlignmentCenter;
+        }
+        else
+        {
+            cell.textLabel.text= @"";
+        }
+    }
     return cell;
 }
 

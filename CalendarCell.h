@@ -12,4 +12,6 @@
 
 @property (weak, nonatomic) IBOutlet UILabel *dateLabel;
 
+@property (weak, nonatomic) IBOutlet UILabel *dotLabel;
+
 @end

@@ -21,7 +21,7 @@
 {
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     // Override point for customization after application launch.
-    self.window.backgroundColor = [UIColor whiteColor];
+    
     [self.window makeKeyAndVisible];
     
     self.eventStore = [[EKEventStore alloc]init];
@@ -35,11 +35,13 @@
             
         }
     }];
-        
+    
+    self.window.backgroundColor = [UIColor whiteColor];
+    
     CalendarViewController *calendarVC = [[CalendarViewController alloc]init];
     
     UINavigationController *navC = [[UINavigationController alloc]initWithRootViewController:calendarVC];
-        
+    
     self.window.rootViewController = navC;
     
     return YES;

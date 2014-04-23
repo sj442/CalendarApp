@@ -9,6 +9,7 @@
 #import <UIKit/UIKit.h>
 #import "CKCalendarHeaderView.h"
 #import "CKCalendarViewModes.h"
+#import <EventKit/EventKit.h>
 
 
 @class CalendarView;
@@ -16,6 +17,10 @@
 @protocol CalendarViewSwipeDelegate <NSObject>
 
 -(void)newDateToPassBack:(NSDate*)date;
+
+-(void)changeHeaderView;
+
+-(void)displayModeChangedTo:(CKCalendarDisplayMode)mode;
 
 @end
 
@@ -33,6 +38,12 @@
 
 @property (nonatomic, assign) CKCalendarDisplayMode displayMode;
 
+@property (nonatomic, strong) EKEventStore *eventStore;
+
+@property (nonatomic, strong) NSArray *events;
+
+@property (nonatomic, strong) NSMutableDictionary *eventsDict;
+
 @property (nonatomic, strong) NSDate *date;
 @property (nonatomic, strong) NSDate *firstVisibleDate;
 @property (nonatomic, strong) NSDate *lastVisibleDate;
@@ -48,8 +59,6 @@
 -(void)layoutSubviewForMonth;
 
 -(void)layoutSubviewForDay;
-
-- (void)reload;
 
 -(void)addMonthSwipeGestureRecognizers;
 

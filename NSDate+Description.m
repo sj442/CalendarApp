@@ -7,6 +7,7 @@
 //
 
 #import "NSDate+Description.h"
+#import "NSCalendar+Components.h"
 
 @implementation NSDate (Description)
 
@@ -125,10 +126,8 @@
 
 + (NSString*)getOrdinalSuffix: (NSDate*)date forCalendar:(NSCalendar *)calendar{
     
-    NSDateComponents *components = [calendar components:NSCalendarUnitDay fromDate:date];
-
-    NSInteger day= [components day];
-    
+    NSInteger day = [calendar daysInDate:date];
+        
     NSDateFormatter *formatter = [[NSDateFormatter alloc]init];
     
     [formatter setDateFormat:@"cccc"];

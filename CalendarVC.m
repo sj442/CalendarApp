@@ -162,7 +162,7 @@
 {
     [self calendarView:self.calendarView eventsForDate:self.calendarView.date];
     
-    [self.calendarView reload];
+    //[self.calendarView reloa];
 }
 
 - (NSArray *)calendarView:(CalendarView *)calendarView eventsForDate:(NSDate *)date
@@ -198,7 +198,7 @@
 {
     [super viewDidAppear:animated];
         
-    [self.calendarView reload];
+    //[self.calendarView reload];
 }
 
 -(void)calendarView:(CalendarView *)CalendarView didSelectDate:(NSDate *)date
