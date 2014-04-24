@@ -35,7 +35,6 @@
     return sameYear && sameMonth;
 }
 
-
 - (BOOL)date:(NSDate*)firstDate isSameMonthAs:(NSDate *)anotherDate
 {
     

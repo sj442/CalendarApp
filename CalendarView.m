@@ -139,12 +139,20 @@
     cell.dotLabel.layer.cornerRadius = 5;
     
     cell.dotLabel.layer.masksToBounds = YES;
-        
-    cell.dateLabel.layer.cornerRadius = 20;
     
-    cell.dateLabel.backgroundColor = [UIColor redColor];
+    cell.dateLabel.layer.cornerRadius = cell.dateLabel.frame.size.width/2;
+    
+    cell.dateLabel.backgroundColor = [UIColor clearColor];
     
     cell.dateLabel.layer.masksToBounds = YES;
+    
+    NSDate *today = [NSDate date];
+    
+    NSInteger todayday = [self.calendar daysInDate:today];
+    
+    NSInteger todayMonth = [self.calendar monthsInDate:today];
+    
+    NSInteger todayYear = [self.calendar yearsInDate:today];
     
     if (self.displayMode==CKCalendarViewModeDay)
     {
@@ -168,11 +176,10 @@
             
             NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
             
-            if ([indexDate isEqualToDate:[NSDate date]])
+            if (day==todayday && month==todayMonth && year ==todayYear)
             {
                 cell.dateLabel.backgroundColor = [UIColor redColor];
             }
-            
             NSDate *startDate = [NSDate calendarStartDateFromDate:indexDate ];
             
             NSDate *endDate = [NSDate calendarEndDateFromDate:indexDate];
@@ -210,12 +217,22 @@
         
         NSInteger day;
         
+        NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+        
+        NSInteger firstDateMonth = [self.calendar monthsInDate:firstDate];
+        
+        NSInteger firstDateYear = [self.calendar yearsInDate:firstDate];
+        
+        NSInteger days = [self.calendar daysInDate:self.date];
+        
+        NSInteger  months = [self.calendar monthsInDate:self.date];
+        
+        NSInteger years = [self.calendar yearsInDate:self.date];
+        
+        NSDate *lastDate = [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date];
+        
         if (weekOfMonth==weeksInMonth) //last week
         {
-            NSDate *lastDate = [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date]; //end at last date, other cells will stay empty
-            
-            NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
-            
             NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
             
             NSInteger lastWeekday = [self.calendar weekdayInDate:lastDate];
@@ -233,8 +250,6 @@
         }
         else if (weekOfMonth==1) //first week
         {
-            NSDate *firstDate = [self.calendar firstDayOfTheMonthUsingReferenceDate:self.date];//start from first date, other cells will stay empty
-            
             NSInteger firstWeekday = [self.calendar weekdayInDate:firstDate];
             
             if (index>=firstWeekday)
@@ -249,29 +264,44 @@
         }
         else //all other weeks
         {
-            NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
-            
             NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
             
-            NSInteger day = firstDateDays+index-1;
-            
-            cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
+            day = firstDateDays+index-1;
         }
-        NSInteger month = [self.calendar monthsInDate:self.date];
         
-        NSInteger year = [self.calendar yearsInDate:self.date];
+        cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
         
-        NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
+        NSDate *indexDate = [NSDate createDateFromComponentsYear:firstDateYear andMonth:firstDateMonth andDay:day];
         
-        if ([indexDate isEqualToDate:self.date])
+        NSDate *startDate = [NSDate calendarStartDateFromDate:indexDate ];
+        
+        NSDate *endDate = [NSDate calendarEndDateFromDate:indexDate];
+        
+        NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:startDate endDate:endDate calendars:nil];
+        
+        NSArray *events = [self.eventStore eventsMatchingPredicate:predicate];
+        
+        if ([events count]>0)
+        {
+            NSDictionary *tempDict = [NSDictionary dictionaryWithObject:events forKey:indexDate];
+            
+            [self.eventsDict addEntriesFromDictionary:tempDict];
+        }
+        
+        if ([events count]>0)
+        {
+            cell.dotLabel.backgroundColor = [UIColor redColor];
+        }
+        else
+        {
+            cell.dotLabel.backgroundColor = [UIColor clearColor];
+        }
+        
+        if ((day==days && firstDateMonth ==months && firstDateYear == years) || (day==todayday && firstDateMonth==todayMonth && firstDateYear == todayYear) )
         {
             cell.dateLabel.backgroundColor = [UIColor redColor];
         }
     }
-    cell.dateLabel.textColor = [UIColor blackColor];
-    
-    cell.dateLabel.backgroundColor = [UIColor whiteColor];
-    
     return cell;
 }
 
@@ -307,7 +337,54 @@
         [self layoutSubviewForDay];
     }
     else
-    {        
+    {
+        NSInteger day;
+        
+        NSInteger weekOfMonth = [self.calendar weekOfMonthInDate:self.date];
+        
+        NSInteger weeksInMonth = [self.calendar weeksPerMonthUsingReferenceDate:self.date];
+        
+        NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+        
+        NSInteger firstDateMonth = [self.calendar monthsInDate:firstDate];
+        
+        NSInteger firstDateYear = [self.calendar yearsInDate:firstDate];
+        
+        NSDate *lastDate = [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date];
+        
+        if (weekOfMonth==weeksInMonth) //last week
+        {
+            NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
+            
+            NSInteger lastWeekday = [self.calendar weekdayInDate:lastDate];
+            
+            if (index<=lastWeekday)
+            {
+                day = firstDateDays+index-1;
+            }
+        }
+        else if (weekOfMonth==1) //first week
+        {
+            NSInteger firstWeekday = [self.calendar weekdayInDate:firstDate];
+            
+            if (index>=firstWeekday)
+            {
+                day = 1+index-firstWeekday;
+            }
+        }
+        else //all other weeks
+        {
+            NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
+            
+            day = firstDateDays+index-1;
+        }
+        
+        self.indexDate= [NSDate createDateFromComponentsYear:firstDateYear andMonth:firstDateMonth andDay:day];
+        
+        self.date = self.indexDate;
+        
+        [self.swipeDelegate newDateToPassBack:self.date];
+
         [self.tableView reloadData];
     }
 }
