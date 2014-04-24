@@ -7,12 +7,12 @@
 
 #import "CalendarView.h"
 #import "CalendarCell.h"
+#import "AppDelegate.h"
+#import "CalendarViewController.h"
 #import "NSCalendar+Juncture.h"
 #import "NSCalendar+Components.h"
 #import "NSDate+Format.h"
-#import "CalendarViewController.h"
 #import "NSDate+Description.h"
-#import "AppDelegate.h"
 #import <QuartzCore/QuartzCore.h>
 
 @implementation CalendarView
@@ -26,60 +26,59 @@
         
         self.eventStore = ((AppDelegate*)[UIApplication sharedApplication].delegate).eventStore;
         
-        self.date = [NSDate createDateFromComponentsYear:2014 andMonth:2 andDay:10];
+        self.date = [NSDate date];
         
-        self.flowLayout = [[UICollectionViewFlowLayout alloc]init];
+        [self setUpCollectionView];
         
-        self.flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
-        
-        self.collectionView.collectionViewLayout = self.flowLayout;
-        
-        self.collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height) collectionViewLayout:self.flowLayout];
-        
-        [self addSubview:self.collectionView];
-        
-        [self.flowLayout setItemSize:[self cellSize]];
-        
-        [self.flowLayout setMinimumLineSpacing:1];
-        
-        [self.flowLayout setMinimumInteritemSpacing:1];
-        
-        self.collectionView.dataSource = self;
-        
-        self.collectionView.delegate = self;
-        
-        self.firstVisibleDate= [self getFirstVisibleDate];
-        
-        self.lastVisibleDate=[self getLastVisibleDate];
-        
-        [self.collectionView registerClass:[CalendarCell class] forCellWithReuseIdentifier:@"CalendarCell"];
-        
-        UINib *nib = [UINib nibWithNibName:@"CalendarCell" bundle:nil];
-        
-        [self.collectionView registerNib:nib forCellWithReuseIdentifier:@"CalendarCell"];
-        
-        self.collectionView.backgroundColor = [UIColor whiteColor];
-        
-        self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height)];
-        
-        self.tableView.delegate = self;
-        
-        self.tableView.dataSource = self;
-        
-        [self addSubview:self.tableView];
+        [self setUpTableView];
         
         self.eventsDict = [[NSMutableDictionary alloc]init];
     }
     return self;
 }
 
--(void)layoutSubviewsForWeek
+#pragma mark-Layout methods
+
+-(void)setUpCollectionView
 {
-    self.collectionView.frame = CGRectMake(0, 0, self.frame.size.width, [self cellSize].height);
+    self.flowLayout = [[UICollectionViewFlowLayout alloc]init];
     
-    self.tableView.frame = CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height);
+    self.flowLayout.scrollDirection = UICollectionViewScrollDirectionVertical;
     
-    [self.collectionView reloadData];
+    self.collectionView.collectionViewLayout = self.flowLayout;
+    
+    self.collectionView = [[UICollectionView alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, self.frame.size.height) collectionViewLayout:self.flowLayout];
+    
+    [self addSubview:self.collectionView];
+    
+    [self.flowLayout setItemSize:[self cellSize]];
+    
+    [self.flowLayout setMinimumLineSpacing:1];
+    
+    [self.flowLayout setMinimumInteritemSpacing:1];
+    
+    self.collectionView.dataSource = self;
+    
+    self.collectionView.delegate = self;
+    
+    [self.collectionView registerClass:[CalendarCell class] forCellWithReuseIdentifier:@"CalendarCell"];
+    
+    UINib *nib = [UINib nibWithNibName:@"CalendarCell" bundle:nil];
+    
+    [self.collectionView registerNib:nib forCellWithReuseIdentifier:@"CalendarCell"];
+    
+    self.collectionView.backgroundColor = [UIColor whiteColor];
+}
+
+-(void)setUpTableView
+{
+    self.tableView = [[UITableView alloc]initWithFrame:CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height)];
+    
+    self.tableView.delegate = self;
+    
+    self.tableView.dataSource = self;
+    
+    [self addSubview:self.tableView];
 }
 
 -(void)layoutSubviewForMonth
@@ -89,6 +88,17 @@
     self.tableView.frame = CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height);
     
     [self.collectionView reloadData];
+}
+
+-(void)layoutSubviewsForWeek
+{
+    self.collectionView.frame = CGRectMake(0, 0, self.frame.size.width, [self cellSize].height);
+    
+    self.tableView.frame = CGRectMake(0, self.collectionView.frame.size.height, self.frame.size.width, self.frame.size.height-self.collectionView.frame.size.height);
+    
+    [self.collectionView reloadData];
+    
+    [self.tableView reloadData];
 }
 
 -(void)layoutSubviewForDay
@@ -102,7 +112,7 @@
     [self.tableView reloadData];
 }
 
-#pragma mark-UICollectionView dataSource Methods
+#pragma mark-UICollectionView DataSource Methods
 
 -(NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
 {
@@ -142,9 +152,9 @@
         {
           cell.dateLabel.text = @"";
         }
-        else if ( index>=[self getFirstVisibleDateDay] && index < [self.calendar daysInDate:self.lastVisibleDate]+[self getFirstVisibleDateDay])
+        else if ( index>=[self getFirstVisibleDateDay] && index < [self.calendar daysInDate:[self getLastVisibleDate]]+[self getFirstVisibleDateDay])
         {
-            NSInteger day = index-[self.calendar weekdayInDate:self.firstVisibleDate]+1;
+            NSInteger day = index-[self.calendar weekdayInDate:[self getFirstVisibleDate]]+1;
             
             cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
             
@@ -160,16 +170,16 @@
             
             NSPredicate *predicate = [self.eventStore predicateForEventsWithStartDate:startDate endDate:endDate calendars:nil];
             
-            self.events = [self.eventStore eventsMatchingPredicate:predicate];
+            NSArray *events = [self.eventStore eventsMatchingPredicate:predicate];
             
-            if ([self.events count]>0)
+            if ([events count]>0)
             {
-            NSDictionary *tempDict = [NSDictionary dictionaryWithObject:self.events forKey:indexDate];
+            NSDictionary *tempDict = [NSDictionary dictionaryWithObject:events forKey:indexDate];
 
             [self.eventsDict addEntriesFromDictionary:tempDict];
             }
             
-            if ([self.events count]>0)
+            if ([events count]>0)
             {
                 cell.dotLabel.backgroundColor = [UIColor redColor];
             }
@@ -195,7 +205,6 @@
     return cell;
 }
 
-
 - (UIEdgeInsets)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout insetForSectionAtIndex:(NSInteger)section
 {
     return UIEdgeInsetsMake(2, 2, 2, 2);
@@ -205,27 +214,17 @@
 {
     NSInteger index = indexPath.section*7 +indexPath.row +1;
     
-    NSInteger day = index-[self.calendar weekdayInDate:self.firstVisibleDate]+1;
+    NSInteger day = index-[self.calendar weekdayInDate:[self getFirstVisibleDate]]+1;
         
     NSInteger month = [self.calendar monthsInDate:self.date];
     
     NSInteger year = [self.calendar yearsInDate:self.date];
     
-    NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
-    
-    NSArray *keys = [self.eventsDict allKeys];
-    
-    for (NSDate *date in keys)
-    {
-      if ([indexDate isEqualToDate:date])
-      {
-          self.events = [self.eventsDict objectForKey:date];
-      }
-    }
+    self.indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
     
     if (self.displayMode == CKCalendarViewModeMonth)
     {
-        [self.swipeDelegate newDateToPassBack:indexDate];
+        [self.swipeDelegate newDateToPassBack:self.indexDate];
         
         [self.swipeDelegate displayModeChangedTo:CKCalendarViewModeDay];
         
@@ -244,10 +243,23 @@
 
 -(NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    if ([self.events count]>0)
+    NSArray *keys = [self.eventsDict allKeys];
+    
+    NSArray *events;
+    
+    for (NSDate *date in keys)
     {
-        return [self.events count];
+        if ([date isEqualToDate:self.indexDate])
+        {
+            events = [self.eventsDict objectForKey:date];
+        }
     }
+    
+    if ([events count]>0)
+    {
+        return [events count];
+    }
+    
     else
     {
         return 10;
@@ -263,23 +275,37 @@
 {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell"];
     
+    cell.textLabel.textAlignment = NSTextAlignmentLeft;
+    
     if (!cell)
     {
         cell = [[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:@"Cell"];
     }
-    if ([self.events count]>0)
-        
+    
+    NSArray *keys = [self.eventsDict allKeys];
+    
+    NSArray *events;
+    
+    for (NSDate *date in keys)
     {
-        cell.textLabel.text = ((EKEvent*)self.events[indexPath.row]).title;
+        if ([date isEqualToDate:self.indexDate])
+        {
+            events = [self.eventsDict objectForKey:date];
+        }
     }
     
+    if ([events count]>0)
+        
+    {
+        cell.textLabel.text = ((EKEvent*)events[indexPath.row]).title;
+    }
     else
     {
         if (indexPath.row==2)
         {
-    cell.textLabel.text = @"No Events";
+            cell.textLabel.text = @"No Events";
             
-    cell.textLabel.textAlignment = NSTextAlignmentCenter;
+            cell.textLabel.textAlignment = NSTextAlignmentCenter;
         }
         else
         {
@@ -291,39 +317,47 @@
 
 -(NSInteger)getFirstVisibleDateDay
 {
-    return [self.calendar weekdayInDate:self.firstVisibleDate];
+    return [self.calendar weekdayInDate:[self getFirstVisibleDate]];
 }
 
 -(NSDate*)getFirstVisibleDate
 {
     if (self.displayMode==CKCalendarViewModeMonth)
     {
-        self.firstVisibleDate= [self.calendar firstDayOfTheMonthUsingReferenceDate:self.date];
+        return [self.calendar firstDayOfTheMonthUsingReferenceDate:self.date];
     }
     else if (self.displayMode == CKCalendarViewModeWeek)
     {
-        self.firstVisibleDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+        return [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
     }
-    return self.firstVisibleDate;
+    else
+    {
+        return [NSDate date];
+    }
 }
 
 -(NSDate*)getLastVisibleDate
 {
     if (self.displayMode==CKCalendarViewModeMonth)
     {
-        self.lastVisibleDate= [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date];
+        return [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date];
     }
     else if (self.displayMode == CKCalendarViewModeWeek)
     {
-        self.lastVisibleDate = [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date];
+        return [self.calendar lastDayOfTheWeekUsingReferenceDate:self.date];
     }
-    return self.lastVisibleDate;
+    else
+    {
+        return [NSDate date];
+    }
 }
 
 -(NSInteger)getLastVisibleDateDay
 {
-    return [self.calendar weekdayInDate:self.lastVisibleDate];
+    return [self.calendar weekdayInDate:[self getLastVisibleDate]];
 }
+
+#pragma mark-UISwipeGestureRecognizer methods
 
 -(void)removeAllGestureRecognizers
 {
@@ -360,10 +394,6 @@
     
     [self.swipeDelegate newDateToPassBack:newDate];
     
-    self.firstVisibleDate= [self getFirstVisibleDate];
-    
-    self.lastVisibleDate=[self getLastVisibleDate];
-    
     [self.collectionView reloadData];
 }
 
@@ -378,10 +408,6 @@
     self.date = newDate;
     
     [self.swipeDelegate newDateToPassBack:newDate];
-    
-    self.firstVisibleDate= [self getFirstVisibleDate];
-    
-    self.lastVisibleDate=[self getLastVisibleDate];
     
     [self.collectionView reloadData];
 }
@@ -404,12 +430,12 @@
 -(void)leftSwipeHappened:(id)sender
 {
     
+    
 }
 
 -(void)rightSwipeHappened:(id)sender
 {
     
 }
-
 
 @end
