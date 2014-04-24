@@ -58,4 +58,6 @@
 
 -(void)addWeekSwipeGestureRecognizers;
 
+-(void)removeAllGestureRecognizers;
+
 @end

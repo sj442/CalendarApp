@@ -106,7 +106,7 @@
     self.tableView.frame = CGRectMake(0, 0, self.frame.size.width, self.frame.size.height);
     
     self.collectionView.frame = CGRectMake(0, self.tableView.frame.size.height, self.frame.size.width, self.frame.size.height - self.tableView.frame.size.height);
-        
+    
     [self.collectionView reloadData];
     
     [self.tableView reloadData];
@@ -129,28 +129,32 @@
 -(UICollectionViewCell*)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     CalendarCell *cell = (CalendarCell*)[self.collectionView dequeueReusableCellWithReuseIdentifier:@"CalendarCell" forIndexPath:indexPath ];
-        
+    
     NSInteger index = indexPath.section*7 +indexPath.row +1;
     
     cell.backgroundColor = [UIColor whiteColor];
-    
+        
     cell.dotLabel.backgroundColor = [UIColor clearColor];
     
     cell.dotLabel.layer.cornerRadius = 5;
     
     cell.dotLabel.layer.masksToBounds = YES;
-
+        
+    cell.dateLabel.layer.cornerRadius = 20;
+    
+    cell.dateLabel.backgroundColor = [UIColor redColor];
+    
+    cell.dateLabel.layer.masksToBounds = YES;
+    
     if (self.displayMode==CKCalendarViewModeDay)
     {
         cell.dateLabel.text = @"";
     }
-    
     else if (self.displayMode ==CKCalendarViewModeMonth)
-        
     {
         if (index< [self getFirstVisibleDateDay])
         {
-          cell.dateLabel.text = @"";
+            cell.dateLabel.text = @"";
         }
         else if ( index>=[self getFirstVisibleDateDay] && index < [self.calendar daysInDate:[self getLastVisibleDate]]+[self getFirstVisibleDateDay])
         {
@@ -164,6 +168,11 @@
             
             NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
             
+            if ([indexDate isEqualToDate:[NSDate date]])
+            {
+                cell.dateLabel.backgroundColor = [UIColor redColor];
+            }
+            
             NSDate *startDate = [NSDate calendarStartDateFromDate:indexDate ];
             
             NSDate *endDate = [NSDate calendarEndDateFromDate:indexDate];
@@ -174,9 +183,9 @@
             
             if ([events count]>0)
             {
-            NSDictionary *tempDict = [NSDictionary dictionaryWithObject:events forKey:indexDate];
-
-            [self.eventsDict addEntriesFromDictionary:tempDict];
+                NSDictionary *tempDict = [NSDictionary dictionaryWithObject:events forKey:indexDate];
+                
+                [self.eventsDict addEntriesFromDictionary:tempDict];
             }
             
             if ([events count]>0)
@@ -190,14 +199,75 @@
         }
         else
         {
-           cell.dateLabel.text = @"";
+            cell.dateLabel.text = @"";
         }
     }
     else
     {
-        //week view
+        NSInteger weekOfMonth = [self.calendar weekOfMonthInDate:self.date];
+        
+        NSInteger weeksInMonth = [self.calendar weeksPerMonthUsingReferenceDate:self.date];
+        
+        NSInteger day;
+        
+        if (weekOfMonth==weeksInMonth) //last week
+        {
+            NSDate *lastDate = [self.calendar lastDayOfTheMonthUsingReferenceDate:self.date]; //end at last date, other cells will stay empty
+            
+            NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+            
+            NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
+            
+            NSInteger lastWeekday = [self.calendar weekdayInDate:lastDate];
+            
+            if (index<=lastWeekday)
+            {
+                day = firstDateDays+index-1;
+                
+                cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
+            }
+            else
+            {
+                cell.dateLabel.text = @"";
+            }
+        }
+        else if (weekOfMonth==1) //first week
+        {
+            NSDate *firstDate = [self.calendar firstDayOfTheMonthUsingReferenceDate:self.date];//start from first date, other cells will stay empty
+            
+            NSInteger firstWeekday = [self.calendar weekdayInDate:firstDate];
+            
+            if (index>=firstWeekday)
+            {
+                day = 1+index-firstWeekday;
+                cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
+            }
+            else
+            {
+                cell.dateLabel.text = @"";
+            }
+        }
+        else //all other weeks
+        {
+            NSDate *firstDate = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+            
+            NSInteger firstDateDays = [self.calendar daysInDate:firstDate];
+            
+            NSInteger day = firstDateDays+index-1;
+            
+            cell.dateLabel.text = [NSString stringWithFormat:@"%ld", (long)day];
+        }
+        NSInteger month = [self.calendar monthsInDate:self.date];
+        
+        NSInteger year = [self.calendar yearsInDate:self.date];
+        
+        NSDate *indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
+        
+        if ([indexDate isEqualToDate:self.date])
+        {
+            cell.dateLabel.backgroundColor = [UIColor redColor];
+        }
     }
-    
     cell.dateLabel.textColor = [UIColor blackColor];
     
     cell.dateLabel.backgroundColor = [UIColor whiteColor];
@@ -214,23 +284,31 @@
 {
     NSInteger index = indexPath.section*7 +indexPath.row +1;
     
-    NSInteger day = index-[self.calendar weekdayInDate:[self getFirstVisibleDate]]+1;
-        
+    NSInteger day;
+    
     NSInteger month = [self.calendar monthsInDate:self.date];
     
     NSInteger year = [self.calendar yearsInDate:self.date];
     
-    self.indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
-    
     if (self.displayMode == CKCalendarViewModeMonth)
     {
-        [self.swipeDelegate newDateToPassBack:self.indexDate];
+        day = index-[self.calendar weekdayInDate:[self getFirstVisibleDate]]+1;
+        
+        self.indexDate = [NSDate createDateFromComponentsYear:year andMonth:month andDay:day];
+        
+        self.date = self.indexDate;
+        
+        [self.swipeDelegate newDateToPassBack:self.date];
         
         [self.swipeDelegate displayModeChangedTo:CKCalendarViewModeDay];
         
         [self.swipeDelegate changeHeaderView];
         
         [self layoutSubviewForDay];
+    }
+    else
+    {        
+        [self.tableView reloadData];
     }
 }
 
@@ -254,12 +332,10 @@
             events = [self.eventsDict objectForKey:date];
         }
     }
-    
     if ([events count]>0)
     {
         return [events count];
     }
-    
     else
     {
         return 10;
@@ -293,9 +369,7 @@
             events = [self.eventsDict objectForKey:date];
         }
     }
-    
     if ([events count]>0)
-        
     {
         cell.textLabel.text = ((EKEvent*)events[indexPath.row]).title;
     }
@@ -361,9 +435,12 @@
 
 -(void)removeAllGestureRecognizers
 {
-    for (UISwipeGestureRecognizer *recognizer in self.gestureRecognizers)
+    for (UIGestureRecognizer *recognizer in self.gestureRecognizers)
     {
+        if ([recognizer isKindOfClass:[UISwipeGestureRecognizer class]])
+        {
         [self removeGestureRecognizer:recognizer];
+        }
     }
 }
 
@@ -373,11 +450,15 @@
     
     upSwipe.direction = UISwipeGestureRecognizerDirectionUp;
     
+    upSwipe.cancelsTouchesInView = YES;
+    
     [self addGestureRecognizer:upSwipe];
     
     UISwipeGestureRecognizer *downSwipe = [[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(downSwipeHappened:)];
     
     downSwipe.direction = UISwipeGestureRecognizerDirectionDown;
+    
+    downSwipe.cancelsTouchesInView = YES;
     
     [self addGestureRecognizer:downSwipe];
 }
@@ -418,24 +499,57 @@
     
     leftSwipe.direction = UISwipeGestureRecognizerDirectionLeft;
     
+    leftSwipe.cancelsTouchesInView = YES;
+    
     [self addGestureRecognizer:leftSwipe];
     
     UISwipeGestureRecognizer *rightSwipe = [[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(rightSwipeHappened:)];
     
     rightSwipe.direction = UISwipeGestureRecognizerDirectionRight;
+
+    leftSwipe.cancelsTouchesInView= YES;
     
     [self addGestureRecognizer:rightSwipe];
 }
 
 -(void)leftSwipeHappened:(id)sender
 {
+    NSInteger weeksInDate = [self.calendar weekOfMonthInDate:self.date];
     
+    NSInteger weeksInMonth = [self.calendar weeksPerMonthUsingReferenceDate:self.date];
     
+    if (weeksInDate==weeksInMonth)//last Week
+    {
+        NSDate *date = [self.calendar dateByAddingMonths:1 toDate:self.date];
+        
+        self.date = [self.calendar firstDayOfTheMonthUsingReferenceDate:date];
+    }
+    else
+    {
+        self.date = [self.calendar dateByAddingDays:7 toDate:self.date];
+    }
+    [self.collectionView reloadData];
+    
+    [self.swipeDelegate newDateToPassBack:self.date];
 }
 
 -(void)rightSwipeHappened:(id)sender
 {
+    NSInteger weeksInDate = [self.calendar weekOfMonthInDate:self.date];
     
+    if (weeksInDate==1)//first Week
+    {
+        NSDate *date = [self.calendar dateBySubtractingMonths:1 fromDate:self.date];
+        
+        self.date = [self.calendar lastDayOfTheMonthUsingReferenceDate:date];
+    }
+    else
+    {
+        self.date = [self.calendar dateBySubtractingDays:7 fromDate:self.date];
+    }
+    [self.collectionView reloadData];
+    
+    [self.swipeDelegate newDateToPassBack:self.date];
 }
 
 @end
