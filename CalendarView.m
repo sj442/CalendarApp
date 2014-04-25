@@ -591,18 +591,22 @@
 
 -(void)leftSwipeHappened:(id)sender
 {
+    NSLog(@"self.date %@", self.date);
+    
     NSInteger weeksInDate = [self.calendar weekOfMonthInDate:self.date];
     
     NSInteger weeksInMonth = [self.calendar weeksPerMonthUsingReferenceDate:self.date];
     
     if (weeksInDate==weeksInMonth)//last Week
     {
-        NSDate *date = [self.calendar dateByAddingMonths:1 toDate:self.date];
+        self.date = [self.calendar firstDayOfTheMonthUsingReferenceDate:self.date];
         
-        self.date = [self.calendar firstDayOfTheMonthUsingReferenceDate:date];
+        self.date = [self.calendar dateByAddingMonths:1 toDate:self.date];
     }
     else
     {
+        self.date = [self.calendar firstDayOfTheWeekUsingReferenceDate:self.date];
+        
         self.date = [self.calendar dateByAddingDays:7 toDate:self.date];
     }
     [self.collectionView reloadData];
@@ -622,6 +626,8 @@
     }
     else
     {
+        self.date = [self.calendar lastDayOfTheWeekUsingReferenceDate:self.date];
+        
         self.date = [self.calendar dateBySubtractingDays:7 fromDate:self.date];
     }
     [self.collectionView reloadData];
